@@ -1,0 +1,77 @@
+#!/usr/bin/env python
+
+import argparse
+import os
+import sys
+
+def get_state(filename):
+    if not os.path.exists(filename):
+        print("Service state file [%s] doesn't exist" % filename)
+        return 4
+
+    f = open(filename, "r")
+    try:
+        state = f.read()
+        return state
+    except:
+        return 4
+    finally:
+        f.close()
+
+def set_state(filename, state):
+    f = open(filename, "w")
+    try:
+        f.write(state)
+    finally:
+        f.close()
+
+def list(args):
+    service_state_files = os.listdir(args.dir)
+    print('{:^30} {:^5}'.format("service", "state"))
+    print('{:^30} {:^5}'.format("=" * 30, "=" * 5))
+    for filename in service_state_files:
+        state = get_state(os.path.join(args.dir, filename))
+        print('{:^30} {:^5}'.format(filename, state))
+
+def check(args):
+    service_state_file = os.path.join(args.dir, args.service)
+    state = get_state(service_state_file)
+    print state
+    numeric_state = 4
+    try:
+        numeric_state = int(state)
+    except: pass
+    sys.exit(numeric_state)
+
+def set(args):
+    service_state_file = os.path.join(args.dir, args.service)
+    set_state(service_state_file, args.state)
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dir', '-d', default="/tmp/nagios-sim", help="Service states directory")
+
+    subparsers = parser.add_subparsers(dest='operation')
+    parser_list = subparsers.add_parser('list', help="list all service states")
+    parser_list.set_defaults(func=list)
+
+    parser_check = subparsers.add_parser('check', help="list all service states")
+    parser_check.add_argument('--service', '-s', help="service name")
+    parser_check.set_defaults(func=check)
+
+    parser_set = subparsers.add_parser('set', help="sets a service state")
+    parser_set.add_argument('--service', '-s', help="service name")
+    parser_set.add_argument('--state', '-r', help="service state")
+    parser_set.set_defaults(func=set)
+
+    args = parser.parse_args()
+    service_states_dir = args.dir
+    if not os.path.exists(service_states_dir):
+        os.mkdir(service_states_dir)
+
+    args.func(args)
+
+
+if __name__ == '__main__':
+    main()
+
